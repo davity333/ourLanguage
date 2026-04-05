@@ -1,0 +1,14 @@
+sis → if
+sino → else
+repetimos → do
+mientras → while
+iterar → for
+escoger → switch
+caso → case
+numero → int
+decimal → float
+letra → String
+binario → bool
+verdad → true
+falso → false
+imprimir → System.out.println

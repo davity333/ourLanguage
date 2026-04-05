@@ -1,0 +1,44 @@
+numero x = 5;
+decimal y = 3.5;
+letra saludo = "Hola mundo";
+binario activo = verdad;
+
+imprimir(saludo);
+
+x = x + 10;
+y = y * 2.0;
+
+imprimir(x);
+imprimir(y);
+
+sis (x > 10) {
+    imprimir("x es mayor que 10");
+} sino {
+    imprimir("x es menor o igual a 10");
+}
+
+repetimos {
+    imprimir("Repetimos al menos una vez");
+    x = x - 1;
+} mientras (x > 12);
+
+mientras (x < 15) {
+    imprimir("x sigue siendo menor a 15");
+    x = x + 1;
+}
+
+iterar (numero i = 0; i < 5; i = i + 1) {
+    imprimir("Iteración: " + i);
+}
+
+escoger (x) {
+    caso 10: {
+        imprimir("x vale diez");
+    }
+    caso 15: {
+        imprimir("x vale quince");
+    }
+    caso otro: {
+        imprimir("x tiene otro valor");
+    }
+}

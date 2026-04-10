@@ -5,7 +5,7 @@ import java.util.regex.*;
 public class Main {
     // Definición de Tokens (Análisis Léxico)
     enum TipoToken {
-        PR_NUMERO, PR_DECIMAL, PR_LETRA, PR_IMPRIMIR, PR_SIS, PR_SINO,
+        PR_NUMERO, PR_DECIMAL, PR_LETRA, PR_TILIN, PR_SIS, PR_SINO,
         PR_MIENTRAS, PR_REPETIMOS, PR_ITERAR, PR_ESCOGER, PR_CASO,
         ID, VAL_INT, VAL_DEC, VAL_STR, OP_ARIT, OP_REL, OP_ASIG,
         PARENTESIS_A, PARENTESIS_C, LLAVE_A, LLAVE_C, PUNTO_COMA, DOS_PUNTOS, COMA, ERROR
@@ -51,7 +51,7 @@ public class Main {
         palabrasReservadas.put("numero", TipoToken.PR_NUMERO);
         palabrasReservadas.put("decimal", TipoToken.PR_DECIMAL);
         palabrasReservadas.put("letra", TipoToken.PR_LETRA);
-        palabrasReservadas.put("imprimir", TipoToken.PR_IMPRIMIR);
+        palabrasReservadas.put("tilin", TipoToken.PR_TILIN);
         palabrasReservadas.put("sis", TipoToken.PR_SIS);
         palabrasReservadas.put("sino", TipoToken.PR_SINO);
         palabrasReservadas.put("mientras", TipoToken.PR_MIENTRAS);

@@ -2,41 +2,41 @@ numero x = 5;
 decimal y = 10.5;
 letra msj = "Resultado: ";
 
-imprimir("--- Inicio de Programa ---");
-imprimir(msj);
+tilin("--- Inicio de Programa ---");
+tilin(msj);
 
 x = (x + 10) * 2;
 y = y / 2.0;
 
-imprimir(x);
-imprimir(y);
+tilin(x);
+tilin(y);
 
 sis (x > 20) {
-    imprimir("X es mayor a 20");
+    tilin("X es mayor a 20");
 } sino {
-    imprimir("X es pequeño");
+    tilin("X es pequeño");
 }
 
 mientras (x > 25) {
-    imprimir("Bajando x...");
+    tilin("Bajando x...");
     x = x - 1;
 }
 
 repetimos {
-    imprimir("Ciclo repetimos");
+    tilin("Ciclo repetimos");
     x = x + 5;
 } mientras (x < 30);
 
 iterar (numero i = 0; i < 3; i = i + 1) {
-    imprimir("Contador for:");
-    imprimir(i);
+    tilin("Contador for:");
+    tilin(i);
 }
 
 escoger (x) {
     caso 30: {
-        imprimir("X es exactamente 30");
+        tilin("X es exactamente 30");
     }
     caso otro: {
-        imprimir("X es otro valor");
+        tilin("X es otro valor");
     }
 }

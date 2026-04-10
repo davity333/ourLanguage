@@ -1,44 +1,42 @@
 numero x = 5;
-decimal y = 3.5;
-letra saludo = "Hola mundo";
-binario activo = verdad;
+decimal y = 10.5;
+letra msj = "Resultado: ";
 
-imprimir(saludo);
+imprimir("--- Inicio de Programa ---");
+imprimir(msj);
 
-x = x + 10;
-y = y * 2.0;
+x = (x + 10) * 2;
+y = y / 2.0;
 
 imprimir(x);
 imprimir(y);
 
-sis (x > 10) {
-    imprimir("x es mayor que 10");
+sis (x > 20) {
+    imprimir("X es mayor a 20");
 } sino {
-    imprimir("x es menor o igual a 10");
+    imprimir("X es pequeño");
+}
+
+mientras (x > 25) {
+    imprimir("Bajando x...");
+    x = x - 1;
 }
 
 repetimos {
-    imprimir("Repetimos al menos una vez");
-    x = x - 1;
-} mientras (x > 12);
+    imprimir("Ciclo repetimos");
+    x = x + 5;
+} mientras (x < 30);
 
-mientras (x < 15) {
-    imprimir("x sigue siendo menor a 15");
-    x = x + 1;
-}
-
-iterar (numero i = 0; i < 5; i = i + 1) {
-    imprimir("Iteración: " + i);
+iterar (numero i = 0; i < 3; i = i + 1) {
+    imprimir("Contador for:");
+    imprimir(i);
 }
 
 escoger (x) {
-    caso 10: {
-        imprimir("x vale diez");
-    }
-    caso 15: {
-        imprimir("x vale quince");
+    caso 30: {
+        imprimir("X es exactamente 30");
     }
     caso otro: {
-        imprimir("x tiene otro valor");
+        imprimir("X es otro valor");
     }
 }

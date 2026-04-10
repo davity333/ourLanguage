@@ -9,6 +9,6 @@ numero → int
 decimal → float
 letra → String
 binario → bool
-verdad → true
-falso → false
-imprimir → System.out.println
+verdaderisimo → true
+falsisimo → false
+tilin → System.out.println

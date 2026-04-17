@@ -13,3 +13,4 @@ binario → bool
 verdaderisimo → true
 falsisimo → false
 tilin → System.out.println
+leer → Scanner.nextLine

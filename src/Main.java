@@ -7,6 +7,7 @@ public class Main {
     // ======================= TOKEN =======================
     enum TipoToken {
         PR_NUMERO, PR_DECIMAL, PR_LETRA,
+        PR_TILIN, PR_LEER,                          // <-- NUEVO: palabras clave de salida/entrada
         ID, VAL_INT, VAL_DEC, VAL_STR,
         OP_ARIT, OP_REL, OP_ASIG,
         PARENTESIS_A, PARENTESIS_C,
@@ -39,10 +40,17 @@ public class Main {
 
     static int tempCount = 1;
 
+    // ======================= MEMORIA DE EJECUCIÓN (NUEVO) =======================
+    static Map<String, Object> variables = new HashMap<>();
+    static Scanner scannerEntrada = new Scanner(System.in);
+
     // ======================= MAIN =======================
     public static void main(String[] args) throws Exception {
 
         String fuente = leerArchivo("src/codigo.txt");
+
+        // Quitar comentarios de línea para que no interfieran (NUEVO)
+        fuente = fuente.replaceAll("//[^\n]*", "");
 
         List<Token> tokens = analizarLexico(fuente);
 
@@ -50,8 +58,10 @@ public class Main {
         tokens.forEach(System.out::println);
 
         System.out.println("\n=== ÁRBOL Y CUÁDRUPLOS ===");
-
         analizarSintactico(tokens);
+
+        System.out.println("\n=== SALIDA ===");     // <-- NUEVO
+        ejecutar(tokens);                           // <-- NUEVO
     }
 
     // ======================= LÉXICO =======================
@@ -60,9 +70,11 @@ public class Main {
         List<Token> tokens = new ArrayList<>();
 
         Map<String, TipoToken> reservadas = new HashMap<>();
-        reservadas.put("numero", TipoToken.PR_NUMERO);
+        reservadas.put("numero",  TipoToken.PR_NUMERO);
         reservadas.put("decimal", TipoToken.PR_DECIMAL);
-        reservadas.put("letra", TipoToken.PR_LETRA);
+        reservadas.put("letra",   TipoToken.PR_LETRA);
+        reservadas.put("tilin",   TipoToken.PR_TILIN);   // <-- NUEVO
+        reservadas.put("leer",    TipoToken.PR_LEER);    // <-- NUEVO
 
         String regex = "\\s*(?:(\".*?\")|([a-zA-Z_][a-zA-Z0-9_]*)|(\\d+\\.\\d+)|(\\d+)|(==|!=|<=|>=|>|<)|([\\+\\-\\*/])|(=)|(\\(|\\)|;))";
         Matcher m = Pattern.compile(regex).matcher(fuente);
@@ -257,9 +269,180 @@ public class Main {
         imprimirArbol(nodo.izquierda, nivel + 1);
     }
 
+    // ======================= EJECUTAR =======================
+
+    static void ejecutar(List<Token> tokens) {
+        int i = 0;
+        while (i < tokens.size()) {
+            Token tk = tokens.get(i);
+
+            if ((tk.tipo == TipoToken.PR_NUMERO ||
+                 tk.tipo == TipoToken.PR_DECIMAL ||
+                 tk.tipo == TipoToken.PR_LETRA)
+                && i + 2 < tokens.size()
+                && tokens.get(i + 1).tipo == TipoToken.ID
+                && tokens.get(i + 2).tipo == TipoToken.OP_ASIG) {
+
+                String nombre = tokens.get(i + 1).valor;
+                i += 3;
+                List<Token> expr = recolectarHastaPuntoComa(tokens, i);
+                i += expr.size() + 1;
+                Object val = evaluarExpresion(expr);
+                variables.put(nombre, val);
+                continue;
+            }
+
+            // Asignación: id = expr ;
+            if (tk.tipo == TipoToken.ID
+                && i + 1 < tokens.size()
+                && tokens.get(i + 1).tipo == TipoToken.OP_ASIG) {
+
+                String nombre = tk.valor;
+                i += 2;
+                List<Token> expr = recolectarHastaPuntoComa(tokens, i);
+                i += expr.size() + 1;
+                Object val = evaluarExpresion(expr);
+                variables.put(nombre, val);
+                continue;
+            }
+
+            // tilin(expr) ;
+            if (tk.tipo == TipoToken.PR_TILIN
+                && i + 1 < tokens.size()
+                && tokens.get(i + 1).tipo == TipoToken.PARENTESIS_A) {
+
+                i += 2; // saltar 'tilin' y '('
+                List<Token> expr = recolectarHastaParentesisC(tokens, i);
+                i += expr.size() + 1; // +1 por ')'
+                Object val = evaluarExpresion(expr);
+                System.out.println(formatear(val));
+                eatSemicolon(tokens, i); if (i < tokens.size() && tokens.get(i).tipo == TipoToken.PUNTO_COMA) i++;
+                continue;
+            }
+
+            i++;
+        }
+    }
+
+    static List<Token> recolectarHastaPuntoComa(List<Token> tokens, int desde) {
+        List<Token> expr = new ArrayList<>();
+        int i = desde;
+        while (i < tokens.size() && tokens.get(i).tipo != TipoToken.PUNTO_COMA) {
+            expr.add(tokens.get(i++));
+        }
+        return expr;
+    }
+
+    static List<Token> recolectarHastaParentesisC(List<Token> tokens, int desde) {
+        List<Token> expr = new ArrayList<>();
+        int depth = 0, i = desde;
+        while (i < tokens.size()) {
+            Token t = tokens.get(i);
+            if (t.tipo == TipoToken.PARENTESIS_A) { depth++; expr.add(t); }
+            else if (t.tipo == TipoToken.PARENTESIS_C) {
+                if (depth == 0) break;
+                depth--; expr.add(t);
+            } else { expr.add(t); }
+            i++;
+        }
+        return expr;
+    }
+
+    static void eatSemicolon(List<Token> tokens, int i) { /* solo para claridad */ }
+
+    /**
+     * Evalúa una lista de tokens como expresión aritmética o literal.
+     * Soporta: leer("prompt"), literales, variables, operaciones +,-,*,/
+     */
+    static Object evaluarExpresion(List<Token> expr) {
+
+        // Caso especial: leer("prompt")
+        if (!expr.isEmpty() && expr.get(0).tipo == TipoToken.PR_LEER) {
+            String prompt = "";
+            for (Token t : expr) {
+                if (t.tipo == TipoToken.VAL_STR) {
+                    prompt = t.valor.replace("\"", "");
+                    break;
+                }
+            }
+            System.out.print(prompt);
+            return scannerEntrada.nextLine();
+        }
+
+        // Expresión con un solo elemento
+        if (expr.size() == 1) {
+            Token t = expr.get(0);
+            if (t.tipo == TipoToken.VAL_INT) return Integer.parseInt(t.valor);
+            if (t.tipo == TipoToken.VAL_DEC) return Double.parseDouble(t.valor);
+            if (t.tipo == TipoToken.VAL_STR) return t.valor.substring(1, t.valor.length() - 1);
+            if (t.tipo == TipoToken.ID)      return variables.getOrDefault(t.valor, 0);
+        }
+
+        // Expresión aritmética: shunting-yard
+        Stack<Object>  vals = new Stack<>();
+        Stack<String>  ops  = new Stack<>();
+
+        for (Token t : expr) {
+            if (t.tipo == TipoToken.VAL_INT) {
+                vals.push(Integer.parseInt(t.valor));
+            } else if (t.tipo == TipoToken.VAL_DEC) {
+                vals.push(Double.parseDouble(t.valor));
+            } else if (t.tipo == TipoToken.VAL_STR) {
+                vals.push(t.valor.substring(1, t.valor.length() - 1));
+            } else if (t.tipo == TipoToken.ID) {
+                vals.push(variables.getOrDefault(t.valor, 0));
+            } else if (t.tipo == TipoToken.OP_ARIT) {
+                while (!ops.isEmpty() && prioridad(ops.peek()) >= prioridad(t.valor))
+                    aplicarOperacion(vals, ops.pop());
+                ops.push(t.valor);
+            } else if (t.tipo == TipoToken.PARENTESIS_A) {
+                ops.push("(");
+            } else if (t.tipo == TipoToken.PARENTESIS_C) {
+                while (!ops.isEmpty() && !ops.peek().equals("("))
+                    aplicarOperacion(vals, ops.pop());
+                if (!ops.isEmpty()) ops.pop();
+            }
+        }
+        while (!ops.isEmpty()) aplicarOperacion(vals, ops.pop());
+
+        return vals.isEmpty() ? 0 : vals.pop();
+    }
+
+    static void aplicarOperacion(Stack<Object> vals, String op) {
+        if (vals.size() < 2) return;
+        Object b = vals.pop(), a = vals.pop();
+        if (a instanceof String || b instanceof String) {
+            vals.push(op.equals("+") ? formatear(a) + formatear(b) : formatear(a));
+            return;
+        }
+        double da = toDouble(a), db = toDouble(b), r;
+        switch (op) {
+            case "+": r = da + db; break;
+            case "-": r = da - db; break;
+            case "*": r = da * db; break;
+            case "/": r = db != 0 ? da / db : 0; break;
+            default:  r = da;
+        }
+        vals.push((a instanceof Integer && b instanceof Integer && !op.equals("/")) ? (int) r : r);
+    }
+
+    static double toDouble(Object o) {
+        if (o instanceof Number) return ((Number) o).doubleValue();
+        try { return Double.parseDouble(o.toString()); } catch (Exception e) { return 0; }
+    }
+
+    static String formatear(Object o) {
+        if (o instanceof Double) {
+            double d = (Double) o;
+            return d == Math.floor(d) ? String.valueOf((long) d) : String.valueOf(d);
+        }
+        return String.valueOf(o);
+    }
+
     // ======================= LECTURA =======================
     static String leerArchivo(String ruta) throws Exception {
-        BufferedReader br = new BufferedReader(new FileReader(ruta));
+        BufferedReader br = new BufferedReader(
+            new InputStreamReader(new FileInputStream(ruta), "UTF-8"));
         StringBuilder sb = new StringBuilder();
         String linea;
         while ((linea = br.readLine()) != null)

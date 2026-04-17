@@ -1,10 +1,14 @@
-//codigo.txt
+﻿//codigo.txt
 numero x = 5;
 decimal y = 10.5;
 letra msj = "Resultado: ";
 
 tilin("--- Inicio de Programa ---");
 tilin(msj);
+
+letra nombre = leer("Ingresa tu nombre: ");
+tilin("Hola, ");
+tilin(nombre);
 
 x = (x + 10) * 2;
 y = y / 2.0;
@@ -20,6 +24,7 @@ sis (x > 20) {
 
 mientras (x > 25) {
     tilin("Bajando x...");
+    tilin("Probandole a Esduardo que no está hardcodeado XD")
     x = x - 1;
 }
 

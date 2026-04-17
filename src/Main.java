@@ -3,115 +3,267 @@ import java.util.*;
 import java.util.regex.*;
 
 public class Main {
-    // Definición de Tokens (Análisis Léxico)
+
+    // ======================= TOKEN =======================
     enum TipoToken {
-        PR_NUMERO, PR_DECIMAL, PR_LETRA, PR_TILIN, PR_SIS, PR_SINO,
-        PR_MIENTRAS, PR_REPETIMOS, PR_ITERAR, PR_ESCOGER, PR_CASO,
-        ID, VAL_INT, VAL_DEC, VAL_STR, OP_ARIT, OP_REL, OP_ASIG,
-        PARENTESIS_A, PARENTESIS_C, LLAVE_A, LLAVE_C, PUNTO_COMA, DOS_PUNTOS, COMA, ERROR
+        PR_NUMERO, PR_DECIMAL, PR_LETRA,
+        ID, VAL_INT, VAL_DEC, VAL_STR,
+        OP_ARIT, OP_REL, OP_ASIG,
+        PARENTESIS_A, PARENTESIS_C,
+        PUNTO_COMA
     }
 
     static class Token {
         TipoToken tipo;
         String valor;
-        Token(TipoToken tipo, String valor) { this.tipo = tipo; this.valor = valor; }
-        @Override
-        public String toString() { return String.format("[%s: %s]", tipo, valor); }
-    }
 
-    public static void main(String[] args) {
-        String nombreArchivo = "src/codigo.txt";
-        System.out.println("--- INICIANDO COMPILACIÓN DE: " + nombreArchivo + " ---");
+        Token(TipoToken tipo, String valor) {
+            this.tipo = tipo;
+            this.valor = valor;
+        }
 
-        try {
-            // 1. LECTURA DEL ARCHIVO
-            String fuente = leerArchivo(nombreArchivo);
-
-            // 2. ANÁLISIS LÉXICO
-            List<Token> tokens = analizarLexico(fuente);
-            System.out.println("\n[A] Análisis Léxico completado. Tokens encontrados:");
-            tokens.forEach(System.out::println);
-
-            // 3. ANÁLISIS SINTÁCTICO / SEMÁNTICO / CÓDIGO INTERMEDIO
-            // Nota: En un compilador real, aquí se construiría el árbol.
-            // Para tu tarea, generaremos la representación intermedia y la traducción.
-            System.out.println("\n[B/C] Generando Código Intermedio y Árbol...");
-            generarAnalisis(tokens);
-
-        } catch (IOException e) {
-            System.err.println("Error al leer el archivo: " + e.getMessage());
+        public String toString() {
+            return "[" + tipo + ": " + valor + "]";
         }
     }
 
-    // --- FASE A: ANALIZADOR LÉXICO ---
-    public static List<Token> analizarLexico(String fuente) {
+    // ======================= NODO =======================
+    static class Nodo {
+        String valor;
+        Nodo izquierda, derecha;
+
+        Nodo(String valor) {
+            this.valor = valor;
+        }
+    }
+
+    static int tempCount = 1;
+
+    // ======================= MAIN =======================
+    public static void main(String[] args) throws Exception {
+
+        String fuente = leerArchivo("src/codigo.txt");
+
+        List<Token> tokens = analizarLexico(fuente);
+
+        System.out.println("=== TOKENS ===");
+        tokens.forEach(System.out::println);
+
+        System.out.println("\n=== ÁRBOL Y CUÁDRUPLOS ===");
+
+        analizarSintactico(tokens);
+    }
+
+    // ======================= LÉXICO =======================
+    static List<Token> analizarLexico(String fuente) {
+
         List<Token> tokens = new ArrayList<>();
-        // Mapa de palabras reservadas en español
-        Map<String, TipoToken> palabrasReservadas = new HashMap<>();
-        palabrasReservadas.put("numero", TipoToken.PR_NUMERO);
-        palabrasReservadas.put("decimal", TipoToken.PR_DECIMAL);
-        palabrasReservadas.put("letra", TipoToken.PR_LETRA);
-        palabrasReservadas.put("tilin", TipoToken.PR_TILIN);
-        palabrasReservadas.put("sis", TipoToken.PR_SIS);
-        palabrasReservadas.put("sino", TipoToken.PR_SINO);
-        palabrasReservadas.put("mientras", TipoToken.PR_MIENTRAS);
-        palabrasReservadas.put("repetimos", TipoToken.PR_REPETIMOS);
-        palabrasReservadas.put("iterar", TipoToken.PR_ITERAR);
-        palabrasReservadas.put("escoger", TipoToken.PR_ESCOGER);
-        palabrasReservadas.put("caso", TipoToken.PR_CASO);
 
-        // Expresión regular para identificar elementos
-        String regex = "\\s*(?:(\".*?\")|([a-zA-Z_][a-zA-Z0-9_]*)|(\\d+\\.\\d+)|(\\d+)|(==|!=|<=|>=|>|<)|([\\+\\-\\*/])|(=)|(\\(|\\)|\\{|\\}|;|:))";
-        Pattern pattern = Pattern.compile(regex);
-        Matcher matcher = pattern.matcher(fuente);
+        Map<String, TipoToken> reservadas = new HashMap<>();
+        reservadas.put("numero", TipoToken.PR_NUMERO);
+        reservadas.put("decimal", TipoToken.PR_DECIMAL);
+        reservadas.put("letra", TipoToken.PR_LETRA);
 
-        while (matcher.find()) {
-            if (matcher.group(1) != null) tokens.add(new Token(TipoToken.VAL_STR, matcher.group(1)));
-            else if (matcher.group(2) != null) {
-                String val = matcher.group(2);
-                tokens.add(new Token(palabrasReservadas.getOrDefault(val, TipoToken.ID), val));
+        String regex = "\\s*(?:(\".*?\")|([a-zA-Z_][a-zA-Z0-9_]*)|(\\d+\\.\\d+)|(\\d+)|(==|!=|<=|>=|>|<)|([\\+\\-\\*/])|(=)|(\\(|\\)|;))";
+        Matcher m = Pattern.compile(regex).matcher(fuente);
+
+        while (m.find()) {
+            if (m.group(1) != null)
+                tokens.add(new Token(TipoToken.VAL_STR, m.group(1)));
+
+            else if (m.group(2) != null) {
+                String val = m.group(2);
+                tokens.add(new Token(reservadas.getOrDefault(val, TipoToken.ID), val));
             }
-            else if (matcher.group(3) != null) tokens.add(new Token(TipoToken.VAL_DEC, matcher.group(3)));
-            else if (matcher.group(4) != null) tokens.add(new Token(TipoToken.VAL_INT, matcher.group(4)));
-            else if (matcher.group(5) != null) tokens.add(new Token(TipoToken.OP_REL, matcher.group(5)));
-            else if (matcher.group(6) != null) tokens.add(new Token(TipoToken.OP_ARIT, matcher.group(6)));
-            else if (matcher.group(7) != null) tokens.add(new Token(TipoToken.OP_ASIG, matcher.group(7)));
-            else if (matcher.group(8) != null) {
-                String s = matcher.group(8);
+
+            else if (m.group(3) != null)
+                tokens.add(new Token(TipoToken.VAL_DEC, m.group(3)));
+
+            else if (m.group(4) != null)
+                tokens.add(new Token(TipoToken.VAL_INT, m.group(4)));
+
+            else if (m.group(5) != null)
+                tokens.add(new Token(TipoToken.OP_REL, m.group(5)));
+
+            else if (m.group(6) != null)
+                tokens.add(new Token(TipoToken.OP_ARIT, m.group(6)));
+
+            else if (m.group(7) != null)
+                tokens.add(new Token(TipoToken.OP_ASIG, m.group(7)));
+
+            else if (m.group(8) != null) {
+                String s = m.group(8);
                 if (s.equals("(")) tokens.add(new Token(TipoToken.PARENTESIS_A, s));
                 else if (s.equals(")")) tokens.add(new Token(TipoToken.PARENTESIS_C, s));
-                else if (s.equals("{")) tokens.add(new Token(TipoToken.LLAVE_A, s));
-                else if (s.equals("}")) tokens.add(new Token(TipoToken.LLAVE_C, s));
                 else if (s.equals(";")) tokens.add(new Token(TipoToken.PUNTO_COMA, s));
-                else if (s.equals(":")) tokens.add(new Token(TipoToken.DOS_PUNTOS, s));
             }
         }
+
         return tokens;
     }
 
-    // --- FASES B, C y D: SÍNTESIS ---
-    public static void generarAnalisis(List<Token> tokens) {
-        System.out.println("Tabla de Código Intermedio (Cuádruplos):");
-        System.out.println("Op\tArg1\tArg2\tResultado");
-        System.out.println("----------------------------------------");
+    // ======================= SINTÁCTICO =======================
+    static void analizarSintactico(List<Token> tokens) {
 
-        // Simulación de generación de código intermedio (Optimización básica)
-        System.out.println("+\t10\tx\tT1");
-        System.out.println("*\tT1\t2\tT2");
-        System.out.println("=\tT2\t-\tx");
+        int i = 0;
 
-        System.out.println("\n[D] Generación de Código Objeto (Simulado):");
-        System.out.println("Código ejecutable generado exitosamente en 'salida.obj'");
+        while (i < tokens.size() - 1) {
 
-        // Validación semántica simple
-        System.out.println("\n[!] Análisis Semántico: 0 errores. Tipos de datos compatibles.");
+            if (tokens.get(i).tipo == TipoToken.ID &&
+                    tokens.get(i + 1).tipo == TipoToken.OP_ASIG) {
+
+                String variable = tokens.get(i).valor;
+                i += 2;
+
+                List<Token> expr = new ArrayList<>();
+
+                while (i < tokens.size() && tokens.get(i).tipo != TipoToken.PUNTO_COMA) {
+                    expr.add(tokens.get(i));
+                    i++;
+                }
+
+                // Validar expresión
+                if (expr.isEmpty()) continue;
+
+                boolean valida = true;
+                for (Token t : expr) {
+                    if (!(t.tipo == TipoToken.ID ||
+                            t.tipo == TipoToken.VAL_INT ||
+                            t.tipo == TipoToken.VAL_DEC ||
+                            t.tipo == TipoToken.OP_ARIT ||
+                            t.tipo == TipoToken.PARENTESIS_A ||
+                            t.tipo == TipoToken.PARENTESIS_C)) {
+                        valida = false;
+                        break;
+                    }
+                }
+
+                if (!valida) continue;
+
+                Nodo raiz = construirArbol(expr);
+
+                System.out.println("\nÁrbol de: " + variable);
+                imprimirArbol(raiz, 0);
+
+                System.out.println("\nCuádruplos:");
+                generarCuadruplos(raiz, variable);
+            }
+
+            i++;
+        }
     }
 
-    public static String leerArchivo(String ruta) throws IOException {
-        StringBuilder sb = new StringBuilder();
+    // ======================= ÁRBOL =======================
+    static Nodo construirArbol(List<Token> tokens) {
+
+        Stack<Nodo> valores = new Stack<>();
+        Stack<String> ops = new Stack<>();
+
+        for (Token t : tokens) {
+
+            if (t.tipo == TipoToken.VAL_INT || t.tipo == TipoToken.VAL_DEC || t.tipo == TipoToken.ID) {
+                valores.push(new Nodo(t.valor));
+            }
+
+            else if (t.tipo == TipoToken.OP_ARIT) {
+
+                while (!ops.isEmpty() && prioridad(ops.peek()) >= prioridad(t.valor)) {
+
+                    if (valores.size() < 2) return new Nodo("ERROR");
+
+                    Nodo der = valores.pop();
+                    Nodo izq = valores.pop();
+                    Nodo op = new Nodo(ops.pop());
+                    op.izquierda = izq;
+                    op.derecha = der;
+                    valores.push(op);
+                }
+
+                ops.push(t.valor);
+            }
+
+            else if (t.tipo == TipoToken.PARENTESIS_A) {
+                ops.push("(");
+            }
+
+            else if (t.tipo == TipoToken.PARENTESIS_C) {
+                while (!ops.isEmpty() && !ops.peek().equals("(")) {
+
+                    if (valores.size() < 2) return new Nodo("ERROR");
+
+                    Nodo der = valores.pop();
+                    Nodo izq = valores.pop();
+                    Nodo op = new Nodo(ops.pop());
+                    op.izquierda = izq;
+                    op.derecha = der;
+                    valores.push(op);
+                }
+                if (!ops.isEmpty()) ops.pop();
+            }
+        }
+
+        while (!ops.isEmpty()) {
+
+            if (valores.size() < 2) return new Nodo("ERROR");
+
+            Nodo der = valores.pop();
+            Nodo izq = valores.pop();
+            Nodo op = new Nodo(ops.pop());
+            op.izquierda = izq;
+            op.derecha = der;
+            valores.push(op);
+        }
+
+        return valores.isEmpty() ? new Nodo("ERROR") : valores.pop();
+    }
+
+    static int prioridad(String op) {
+        if (op.equals("*") || op.equals("/")) return 2;
+        if (op.equals("+") || op.equals("-")) return 1;
+        return 0;
+    }
+
+    // ======================= CUÁDRUPLOS =======================
+    static String generarCuadruplos(Nodo nodo, String resultadoFinal) {
+
+        if (nodo == null) return "";
+
+        if (nodo.izquierda == null && nodo.derecha == null)
+            return nodo.valor;
+
+        String izq = generarCuadruplos(nodo.izquierda, null);
+        String der = generarCuadruplos(nodo.derecha, null);
+
+        String temp = "T" + tempCount++;
+
+        System.out.println(nodo.valor + "\t" + izq + "\t" + der + "\t" + temp);
+
+        if (resultadoFinal != null) {
+            System.out.println("=\t" + temp + "\t-\t" + resultadoFinal);
+        }
+
+        return temp;
+    }
+
+    // ======================= IMPRIMIR =======================
+    static void imprimirArbol(Nodo nodo, int nivel) {
+        if (nodo == null) return;
+
+        imprimirArbol(nodo.derecha, nivel + 1);
+
+        for (int i = 0; i < nivel; i++) System.out.print("   ");
+        System.out.println(nodo.valor);
+
+        imprimirArbol(nodo.izquierda, nivel + 1);
+    }
+
+    // ======================= LECTURA =======================
+    static String leerArchivo(String ruta) throws Exception {
         BufferedReader br = new BufferedReader(new FileReader(ruta));
+        StringBuilder sb = new StringBuilder();
         String linea;
-        while ((linea = br.readLine()) != null) sb.append(linea).append("\n");
+        while ((linea = br.readLine()) != null)
+            sb.append(linea).append("\n");
         br.close();
         return sb.toString();
     }

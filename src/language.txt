@@ -1,3 +1,4 @@
+//language.txt
 sis → if
 sino → else
 repetimos → do

@@ -7,7 +7,7 @@ public class Main {
     // ======================= TOKEN =======================
     enum TipoToken {
         PR_NUMERO, PR_DECIMAL, PR_LETRA,
-        PR_TILIN, PR_LEER,                          // <-- NUEVO: palabras clave de salida/entrada
+        PR_TILIN, PR_LEER,
         ID, VAL_INT, VAL_DEC, VAL_STR,
         OP_ARIT, OP_REL, OP_ASIG,
         PARENTESIS_A, PARENTESIS_C,
@@ -121,6 +121,53 @@ public class Main {
 
         while (i < tokens.size() - 1) {
 
+            // --- Declaración con asignación: tipo id = expr ;
+            if ((tokens.get(i).tipo == TipoToken.PR_NUMERO ||
+                 tokens.get(i).tipo == TipoToken.PR_DECIMAL ||
+                 tokens.get(i).tipo == TipoToken.PR_LETRA)
+                && i + 2 < tokens.size()
+                && tokens.get(i + 1).tipo == TipoToken.ID
+                && tokens.get(i + 2).tipo == TipoToken.OP_ASIG) {
+
+                String tipo     = tokens.get(i).valor;
+                String variable = tokens.get(i + 1).valor;
+                i += 3;
+
+                List<Token> expr = new ArrayList<>();
+                while (i < tokens.size() && tokens.get(i).tipo != TipoToken.PUNTO_COMA) {
+                    expr.add(tokens.get(i++));
+                }
+
+                if (!expr.isEmpty()) {
+                    // leer en la expresión → cuádruplo especial
+                    if (expr.get(0).tipo == TipoToken.PR_LEER) {
+                        String prompt = "";
+                        for (Token t : expr)
+                            if (t.tipo == TipoToken.VAL_STR) { prompt = t.valor; break; }
+                        System.out.println("\nCuádruplos: (declaración " + tipo + " " + variable + ")");
+                        System.out.println("leer\t" + prompt + "\t-\t" + variable);
+                    } else {
+                        boolean valida = true;
+                        for (Token t : expr) {
+                            if (!(t.tipo == TipoToken.ID || t.tipo == TipoToken.VAL_INT ||
+                                  t.tipo == TipoToken.VAL_DEC || t.tipo == TipoToken.OP_ARIT ||
+                                  t.tipo == TipoToken.PARENTESIS_A || t.tipo == TipoToken.PARENTESIS_C)) {
+                                valida = false; break;
+                            }
+                        }
+                        if (valida) {
+                            Nodo raiz = construirArbol(expr);
+                            System.out.println("\nÁrbol de: " + variable + " (declaración " + tipo + ")");
+                            imprimirArbol(raiz, 0);
+                            System.out.println("\nCuádruplos:");
+                            generarCuadruplos(raiz, variable);
+                        }
+                    }
+                }
+                continue;
+            }
+
+            // --- Asignación: id = expr ;
             if (tokens.get(i).tipo == TipoToken.ID &&
                     tokens.get(i + 1).tipo == TipoToken.OP_ASIG) {
 
@@ -128,13 +175,11 @@ public class Main {
                 i += 2;
 
                 List<Token> expr = new ArrayList<>();
-
                 while (i < tokens.size() && tokens.get(i).tipo != TipoToken.PUNTO_COMA) {
                     expr.add(tokens.get(i));
                     i++;
                 }
 
-                // Validar expresión
                 if (expr.isEmpty()) continue;
 
                 boolean valida = true;
@@ -159,6 +204,45 @@ public class Main {
 
                 System.out.println("\nCuádruplos:");
                 generarCuadruplos(raiz, variable);
+            }
+
+            // --- tilin(expr) ;
+            else if (tokens.get(i).tipo == TipoToken.PR_TILIN
+                     && i + 1 < tokens.size()
+                     && tokens.get(i + 1).tipo == TipoToken.PARENTESIS_A) {
+
+                i += 2; // saltar tilin y (
+                List<Token> expr = new ArrayList<>();
+                int depth = 0;
+                while (i < tokens.size()) {
+                    Token t = tokens.get(i);
+                    if (t.tipo == TipoToken.PARENTESIS_A) { depth++; expr.add(t); i++; }
+                    else if (t.tipo == TipoToken.PARENTESIS_C) {
+                        if (depth == 0) { i++; break; }
+                        depth--; expr.add(t); i++;
+                    } else { expr.add(t); i++; }
+                }
+
+                String temp = "T" + tempCount++;
+                System.out.println("\nCuádruplos: (tilin)");
+                if (expr.size() == 1 && (expr.get(0).tipo == TipoToken.VAL_STR
+                        || expr.get(0).tipo == TipoToken.ID
+                        || expr.get(0).tipo == TipoToken.VAL_INT
+                        || expr.get(0).tipo == TipoToken.VAL_DEC)) {
+                    System.out.println("tilin\t" + expr.get(0).valor + "\t-\t-");
+                } else {
+                    boolean valida = true;
+                    for (Token t : expr)
+                        if (!(t.tipo == TipoToken.ID || t.tipo == TipoToken.VAL_INT ||
+                              t.tipo == TipoToken.VAL_DEC || t.tipo == TipoToken.OP_ARIT ||
+                              t.tipo == TipoToken.PARENTESIS_A || t.tipo == TipoToken.PARENTESIS_C))
+                            { valida = false; break; }
+                    if (valida && !expr.isEmpty()) {
+                        Nodo raiz = construirArbol(expr);
+                        String res = generarCuadruplos(raiz, null);
+                        System.out.println("tilin\t" + res + "\t-\t-");
+                    }
+                }
             }
 
             i++;
@@ -349,11 +433,7 @@ public class Main {
     }
 
     static void eatSemicolon(List<Token> tokens, int i) { /* solo para claridad */ }
-
-    /**
-     * Evalúa una lista de tokens como expresión aritmética o literal.
-     * Soporta: leer("prompt"), literales, variables, operaciones +,-,*,/
-     */
+    
     static Object evaluarExpresion(List<Token> expr) {
 
         // Caso especial: leer("prompt")

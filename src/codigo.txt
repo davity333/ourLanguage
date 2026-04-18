@@ -30,7 +30,7 @@ mientras (x > 25) {
 
 repetimos {
     tilin("Ciclo repetimos");
-    x = x + 5;
+    x = x + - 5;
 } mientras (x < 30);
 
 iterar (numero i = 0; i < 3; i = i + 1) {

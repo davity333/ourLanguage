@@ -433,7 +433,7 @@ public class Main {
     }
 
     static void eatSemicolon(List<Token> tokens, int i) { /* solo para claridad */ }
-    
+
     static Object evaluarExpresion(List<Token> expr) {
 
         // Caso especial: leer("prompt")
